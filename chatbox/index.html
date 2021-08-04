@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+    <title>ChatBox</title>
+    <style>
+        #messages{height:200px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 offset-md-3 col-sm-12">
+                <h1 class="text-center">
+                    ChatBox
+                </h1>
+                <div id="status"></div>
+                <div id="chat">
+                    <input type="text" id="user" class="form-control" placeholder="Enter name...">
+                    <br>
+                    <div class="card">
+                        <div id="messages" class="card-block">
+
+                        </div>
+                    </div>
+                    <br>
+                    <textarea id="textarea" class="form-control" placeholder="Enter message..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+
+    <script>
+        (function(){
+            var item = function(id){
+                return document.getElementById(id);
+            }
+            var status = item('status');
+            var messages = item('messages');
+            var textarea = item('textarea');
+            var username = item('user');
+
+            var statusDefault = status.textContent;
+
+            var setStatus = function(s){
+                // Set status
+                status.textContent = s;
+
+                if(s !== statusDefault){
+                    var delay = setTimeout(function(){
+                        setStatus(statusDefault);
+                    }, 4000);
+                }
+            }
+
+            var Rehamsocket = io.connect('http://127.0.0.1:3000');
+
+            if(Rehamsocket !== undefined){
+                console.log('Connected...');
+
+                Rehamsocket.on('mess', function(data){
+                    if(data.length){
+                        for(var x = 0;x < data.length;x++){
+
+                            var message = document.createElement('div');
+                            message.setAttribute('class', 'chat-message');
+                            message.textContent = data[x].name+": "+data[x].message;
+                            messages.appendChild(message);
+                            messages.insertBefore(message, messages.firstChild);
+                        }
+                    }
+                });
+
+                Rehamsocket.on('status', function(data){
+                    setStatus((typeof data === 'object')? data.message : data);
+
+                    if(data.clear){
+                        textarea.value = '';
+                    }
+                });
+
+                textarea.addEventListener('keydown', function(event){
+                    if(event.which === 13 && event.shiftKey == false){
+                        Rehamsocket.emit('input', {
+                            name:username.value,
+                            message:textarea.value
+                        });
+
+                        event.preventDefault();
+                    }
+                })
+
+            }
+
+        })();
+    </script>
+</body>
+</html>
